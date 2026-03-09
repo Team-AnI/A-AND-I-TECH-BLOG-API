@@ -1,0 +1,17 @@
+name: aandi_tech_blog
+description: Tech blog APIs package for AANDI admin service
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.4
+
+resolution: workspace
+
+dependencies:
+  dio: ^5.9.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
