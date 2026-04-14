@@ -1,5 +1,6 @@
 import 'post_author.dart';
 import 'post_status.dart';
+import 'post_type.dart';
 
 /// 게시글 단건 응답 모델입니다.
 class PostResponse {
@@ -11,6 +12,7 @@ class PostResponse {
     this.thumbnailUrl,
     required this.author,
     required this.collaborators,
+    this.type,
     required this.status,
     this.createdAt,
     this.updatedAt,
@@ -37,6 +39,9 @@ class PostResponse {
   /// 협업자 목록(없으면 빈 배열)
   final List<PostAuthor> collaborators;
 
+  /// 게시글 유형 (`Blog`, `Lecture`)
+  final PostType? type;
+
   /// 게시 상태 (`Draft`, `Published`, `Deleted`)
   final PostStatus status;
 
@@ -49,6 +54,7 @@ class PostResponse {
   factory PostResponse.fromJson(Map<String, dynamic> json) {
     final rawAuthor = json['author'];
     final rawCollaborators = json['collaborators'];
+    final rawType = json['type']?.toString();
     final rawStatus = json['status']?.toString() ?? 'Draft';
 
     return PostResponse(
@@ -66,6 +72,9 @@ class PostResponse {
                 .map(PostAuthor.fromJson)
                 .toList()
           : const <PostAuthor>[],
+      type: rawType == null || rawType.isEmpty
+          ? null
+          : postTypeFromApi(rawType),
       status: postStatusFromApi(rawStatus),
       createdAt: _parseDateTime(json['createdAt']),
       updatedAt: _parseDateTime(json['updatedAt']),

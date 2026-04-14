@@ -1,5 +1,6 @@
 import 'post_author.dart';
 import 'post_status.dart';
+import 'post_type.dart';
 
 /// 게시글 생성 요청 모델입니다.
 ///
@@ -12,6 +13,7 @@ class CreatePostRequest {
     this.contentMarkdown,
     this.thumbnailUrl,
     this.collaborators,
+    this.type,
     this.status,
   });
 
@@ -33,6 +35,9 @@ class CreatePostRequest {
   /// 협업자 목록
   final List<PostAuthor>? collaborators;
 
+  /// 게시글 유형 (`Blog`, `Lecture`)
+  final PostType? type;
+
   /// 게시 상태 (`Draft`, `Published`, `Deleted`)
   final PostStatus? status;
 
@@ -46,6 +51,7 @@ class CreatePostRequest {
       'author': author.toJson(),
       if (collaborators != null)
         'collaborators': collaborators!.map((item) => item.toJson()).toList(),
+      if (type != null) 'type': type!.toApi(),
       if (status != null) 'status': status!.toApi(),
     };
   }

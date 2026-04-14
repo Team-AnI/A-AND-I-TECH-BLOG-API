@@ -3,6 +3,7 @@
 export 'src/tech_blog_api_client.dart';
 export 'src/tech_blog_api_exception.dart';
 export 'src/post_status.dart';
+export 'src/post_type.dart';
 export 'src/post_author.dart';
 export 'src/post_response.dart';
 export 'src/paged_post_response.dart';
