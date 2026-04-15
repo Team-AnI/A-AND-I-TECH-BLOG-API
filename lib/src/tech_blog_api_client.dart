@@ -9,6 +9,7 @@ import 'paged_post_response.dart';
 import 'patch_post_request.dart';
 import 'post_response.dart';
 import 'post_status.dart';
+import 'post_type.dart';
 import 'tech_blog_api_exception.dart';
 
 /// Tech Blog 백엔드와 통신하는 HTTP 클라이언트입니다.
@@ -16,13 +17,216 @@ class TechBlogApiClient {
   /// [baseUrl]은 API 서버 루트 URL입니다. (예: `https://api.aandiclub.com`)
   ///
   /// [dio]를 주입하면 테스트/인터셉터 구성을 재사용할 수 있습니다.
-  TechBlogApiClient({required this.baseUrl, Dio? dio}) : dio = dio ?? Dio();
+  TechBlogApiClient({
+    required this.baseUrl,
+    this.deviceOs = 'android',
+    Dio? dio,
+  }) : dio = dio ?? Dio();
 
   /// API 서버 루트 URL
   final String baseUrl;
 
+  /// v2 요청 시 사용할 디바이스 OS입니다.
+  final String deviceOs;
+
   /// HTTP 클라이언트
   final Dio dio;
+
+  /// v2 게시글 목록을 조회합니다.
+  Future<PagedPostResponse> listPostsV2({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+    PostStatus? status,
+    PostType? type,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'size': size.toString(),
+          if (status != null) 'status': status.toApi(),
+          if (type != null) 'type': type.toApi(),
+        },
+      ),
+      options: _v2Options(method: 'GET', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PagedPostResponse.fromJson(data);
+  }
+
+  /// v2 초안 게시글 목록을 조회합니다.
+  Future<PagedPostResponse> listDraftsV2({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+    PostType? type,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts/drafts').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'size': size.toString(),
+          if (type != null) 'type': type.toApi(),
+        },
+      ),
+      options: _v2Options(method: 'GET', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PagedPostResponse.fromJson(data);
+  }
+
+  /// v2 현재 사용자 기준 게시글 목록을 조회합니다.
+  Future<PagedPostResponse> listMyPostsV2({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+    PostStatus? status,
+    PostType? type,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts/me').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'size': size.toString(),
+          if (status != null) 'status': status.toApi(),
+          if (type != null) 'type': type.toApi(),
+        },
+      ),
+      options: _v2Options(method: 'GET', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PagedPostResponse.fromJson(data);
+  }
+
+  /// v2 현재 사용자 기준 초안 목록을 조회합니다.
+  Future<PagedPostResponse> listMyDraftsV2({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+    PostType? type,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts/drafts/me').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'size': size.toString(),
+          if (type != null) 'type': type.toApi(),
+        },
+      ),
+      options: _v2Options(method: 'GET', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PagedPostResponse.fromJson(data);
+  }
+
+  /// v2 게시글 상세를 조회합니다.
+  Future<PostResponse> getPostV2({
+    required String postId,
+    required String accessToken,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts/$postId'),
+      options: _v2Options(method: 'GET', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PostResponse.fromJson(data);
+  }
+
+  /// v2 게시글을 생성합니다.
+  Future<PostResponse> createPostV2({
+    required String accessToken,
+    required CreatePostRequest post,
+    MultipartFile? thumbnail,
+  }) async {
+    final payload = <String, dynamic>{'post': jsonEncode(post.toJson())};
+    if (thumbnail != null) {
+      payload['thumbnail'] = thumbnail;
+    }
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts'),
+      data: FormData.fromMap(payload),
+      options: _v2Options(method: 'POST', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PostResponse.fromJson(data);
+  }
+
+  /// v2 게시글을 부분 수정합니다.
+  Future<PostResponse> patchPostV2({
+    required String postId,
+    required String accessToken,
+    required PatchPostRequest post,
+    MultipartFile? thumbnail,
+  }) async {
+    final requestData = thumbnail == null
+        ? post.toJson()
+        : FormData.fromMap({
+            'post': jsonEncode(post.toJson()),
+            'thumbnail': thumbnail,
+          });
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts/$postId'),
+      data: requestData,
+      options: _v2Options(
+        method: 'PATCH',
+        accessToken: accessToken,
+        jsonBody: thumbnail == null,
+      ),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PostResponse.fromJson(data);
+  }
+
+  /// v2 게시글 삭제 여부를 반환합니다.
+  Future<bool> deletePostV2({
+    required String postId,
+    required String accessToken,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts/$postId'),
+      options: _v2Options(method: 'DELETE', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    final deleted = data['deleted'];
+    if (deleted is bool) {
+      return deleted;
+    }
+    return false;
+  }
+
+  /// v2 게시글에 협업자를 추가합니다.
+  Future<PostResponse> addCollaboratorV2({
+    required String postId,
+    required String accessToken,
+    required AddCollaboratorRequest request,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts/$postId/collaborators'),
+      data: {'collaborator': request.collaborator.toJson()},
+      options: _v2Options(
+        method: 'POST',
+        accessToken: accessToken,
+        jsonBody: true,
+      ),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PostResponse.fromJson(data);
+  }
+
+  /// v2 이미지를 업로드하고 공개 메타데이터를 반환합니다.
+  Future<ImageUploadResponse> uploadImageV2({
+    required String accessToken,
+    required MultipartFile file,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      Uri.parse('$baseUrl/v2/posts/images'),
+      data: FormData.fromMap({'file': file}),
+      options: _v2Options(method: 'POST', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    return ImageUploadResponse.fromJson(data);
+  }
 
   /// 게시글 목록을 조회합니다.
   ///
@@ -441,6 +645,60 @@ class TechBlogApiClient {
     final code = error is Map<String, dynamic>
         ? error['code']?.toString()
         : null;
-    throw TechBlogApiException(message, statusCode: statusCode, code: code);
+    final value = error is Map<String, dynamic>
+        ? error['value']?.toString()
+        : null;
+    final alert = error is Map<String, dynamic>
+        ? error['alert']?.toString()
+        : null;
+    throw TechBlogApiException(
+      alert ?? message,
+      statusCode: statusCode,
+      code: code,
+      value: value,
+      alert: alert,
+    );
+  }
+
+  Options _v2Options({
+    required String method,
+    required String accessToken,
+    bool jsonBody = false,
+  }) {
+    return Options(
+      method: method,
+      headers: {
+        'Accept': 'application/json',
+        'deviceOS': deviceOs,
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+        'Authenticate': 'Bearer $accessToken',
+        if (jsonBody) 'Content-Type': 'application/json',
+      },
+      responseType: ResponseType.plain,
+      validateStatus: (_) => true,
+    );
+  }
+
+  Map<String, dynamic> _unwrapV2DataMap(Response<dynamic> response) {
+    final statusCode = response.statusCode ?? 0;
+    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
+    if (statusCode < 200 || statusCode >= 300) {
+      _throwApiError(decoded, statusCode: statusCode);
+    }
+    final success = decoded['success'];
+    if (success == false) {
+      _throwApiError(decoded, statusCode: statusCode);
+    }
+    final data = decoded['data'];
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    if (data is Map) {
+      return data.map((key, value) => MapEntry(key.toString(), value));
+    }
+    throw TechBlogApiException(
+      'Invalid response data shape',
+      statusCode: statusCode,
+    );
   }
 }
