@@ -671,16 +671,12 @@ class TechBlogApiClient {
     final message = error is Map<String, dynamic>
         ? error['message']?.toString() ?? '요청에 실패했습니다.'
         : '요청에 실패했습니다.';
-<<<<<<< Updated upstream
-    final code = error is Map<String, dynamic>
-        ? error['code']?.toString()
-        : null;
-    final value = error is Map<String, dynamic>
-        ? error['value']?.toString()
-        : null;
-    final alert = error is Map<String, dynamic>
-        ? error['alert']?.toString()
-        : null;
+    final code =
+        error is Map<String, dynamic> ? error['code']?.toString() : null;
+    final value =
+        error is Map<String, dynamic> ? error['value']?.toString() : null;
+    final alert =
+        error is Map<String, dynamic> ? error['alert']?.toString() : null;
     throw TechBlogApiException(
       alert ?? message,
       statusCode: statusCode,
@@ -730,10 +726,5 @@ class TechBlogApiClient {
       'Invalid response data shape',
       statusCode: statusCode,
     );
-=======
-    final code =
-        error is Map<String, dynamic> ? error['code']?.toString() : null;
-    throw TechBlogApiException(message, statusCode: statusCode, code: code);
->>>>>>> Stashed changes
   }
 }
