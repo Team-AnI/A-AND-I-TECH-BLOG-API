@@ -4,11 +4,11 @@ version: 0.1.0
 publish_to: none
 
 environment:
-  sdk: ^3.10.4
-
-resolution: workspace
+  sdk: ^3.5.3
 
 dependencies:
+  aandi_api_endpoints:
+    path: ../aandi_api_endpoints
   dio: ^5.9.0
 
 dev_dependencies:

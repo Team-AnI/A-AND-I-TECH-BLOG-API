@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:aandi_api_endpoints/aandi_api_endpoints.dart';
 import 'package:dio/dio.dart';
 
 import 'add_collaborator_request.dart';
@@ -244,7 +245,9 @@ class TechBlogApiClient {
     };
 
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts').replace(queryParameters: queryParameters),
+      Uri.parse(
+        AandiApiUrlResolver.resolve(baseUrl, AandiApiEndpointTemplate.posts),
+      ).replace(queryParameters: queryParameters),
       options: Options(
         method: 'GET',
         headers: {'Accept': 'application/json'},
@@ -261,9 +264,8 @@ class TechBlogApiClient {
       final message = error is Map<String, dynamic>
           ? error['message']?.toString() ?? '요청에 실패했습니다.'
           : '요청에 실패했습니다.';
-      final code = error is Map<String, dynamic>
-          ? error['code']?.toString()
-          : null;
+      final code =
+          error is Map<String, dynamic> ? error['code']?.toString() : null;
       throw TechBlogApiException(message, statusCode: statusCode, code: code);
     }
 
@@ -280,7 +282,10 @@ class TechBlogApiClient {
   /// 초안 게시글 목록을 조회합니다.
   Future<PagedPostResponse> listDrafts({int page = 0, int size = 20}) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts/drafts').replace(
+      Uri.parse(
+        AandiApiUrlResolver.resolve(
+            baseUrl, AandiApiEndpointTemplate.draftPosts),
+      ).replace(
         queryParameters: {'page': page.toString(), 'size': size.toString()},
       ),
       options: Options(
@@ -319,7 +324,9 @@ class TechBlogApiClient {
     PostStatus? status,
   }) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts/me').replace(
+      Uri.parse(
+        AandiApiUrlResolver.resolve(baseUrl, AandiApiEndpointTemplate.myPosts),
+      ).replace(
         queryParameters: {
           'page': page.toString(),
           'size': size.toString(),
@@ -363,7 +370,10 @@ class TechBlogApiClient {
     int size = 20,
   }) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts/drafts/me').replace(
+      Uri.parse(
+        AandiApiUrlResolver.resolve(
+            baseUrl, AandiApiEndpointTemplate.myDraftPosts),
+      ).replace(
         queryParameters: {'page': page.toString(), 'size': size.toString()},
       ),
       options: Options(
@@ -397,7 +407,10 @@ class TechBlogApiClient {
   /// 게시글 상세를 조회합니다.
   Future<PostResponse> getPost({required String postId}) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts/$postId'),
+      Uri.parse(
+        AandiApiUrlResolver.resolve(
+            baseUrl, AandiApiEndpointPath.postById(postId)),
+      ),
       options: Options(
         method: 'GET',
         headers: {'Accept': 'application/json'},
@@ -433,7 +446,9 @@ class TechBlogApiClient {
     final formData = FormData.fromMap(payload);
 
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts'),
+      Uri.parse(
+        AandiApiUrlResolver.resolve(baseUrl, AandiApiEndpointTemplate.posts),
+      ),
       data: formData,
       options: Options(
         method: 'POST',
@@ -479,7 +494,10 @@ class TechBlogApiClient {
     };
 
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts/$postId'),
+      Uri.parse(
+        AandiApiUrlResolver.resolve(
+            baseUrl, AandiApiEndpointPath.postById(postId)),
+      ),
       data: requestData,
       options: Options(
         method: 'PATCH',
@@ -504,7 +522,10 @@ class TechBlogApiClient {
   /// 서버가 반환한 `data`에서 첫 번째 bool 값을 읽어 삭제 여부를 반환합니다.
   Future<bool> deletePost({required String postId, String? accessToken}) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts/$postId'),
+      Uri.parse(
+        AandiApiUrlResolver.resolve(
+            baseUrl, AandiApiEndpointPath.postById(postId)),
+      ),
       options: Options(
         method: 'DELETE',
         headers: {
@@ -551,7 +572,12 @@ class TechBlogApiClient {
     required AddCollaboratorRequest request,
   }) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts/$postId/collaborators'),
+      Uri.parse(
+        AandiApiUrlResolver.resolve(
+          baseUrl,
+          AandiApiEndpointPath.postCollaborators(postId),
+        ),
+      ),
       data: request.toJson(),
       options: Options(
         method: 'POST',
@@ -580,7 +606,10 @@ class TechBlogApiClient {
   /// 서버 제약 위반 시 413(용량 초과), 415(미디어 타입 불일치) 오류가 발생할 수 있습니다.
   Future<ImageUploadResponse> uploadImage({required MultipartFile file}) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v1/posts/images'),
+      Uri.parse(
+        AandiApiUrlResolver.resolve(
+            baseUrl, AandiApiEndpointTemplate.postImages),
+      ),
       data: FormData.fromMap({'file': file}),
       options: Options(
         method: 'POST',
@@ -642,6 +671,7 @@ class TechBlogApiClient {
     final message = error is Map<String, dynamic>
         ? error['message']?.toString() ?? '요청에 실패했습니다.'
         : '요청에 실패했습니다.';
+<<<<<<< Updated upstream
     final code = error is Map<String, dynamic>
         ? error['code']?.toString()
         : null;
@@ -700,5 +730,10 @@ class TechBlogApiClient {
       'Invalid response data shape',
       statusCode: statusCode,
     );
+=======
+    final code =
+        error is Map<String, dynamic> ? error['code']?.toString() : null;
+    throw TechBlogApiException(message, statusCode: statusCode, code: code);
+>>>>>>> Stashed changes
   }
 }
