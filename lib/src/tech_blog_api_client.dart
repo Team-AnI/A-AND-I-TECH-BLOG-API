@@ -34,8 +34,10 @@ class TechBlogApiClient {
   final Dio dio;
 
   /// v2 게시글 목록을 조회합니다.
+  ///
+  /// [accessToken]이 null이면 인증 헤더 없이 공개 목록을 조회합니다.
   Future<PagedPostResponse> listPostsV2({
-    required String accessToken,
+    String? accessToken,
     int page = 0,
     int size = 20,
     PostStatus? status,
@@ -688,7 +690,7 @@ class TechBlogApiClient {
 
   Options _v2Options({
     required String method,
-    required String accessToken,
+    String? accessToken,
     bool jsonBody = false,
   }) {
     return Options(
@@ -697,7 +699,8 @@ class TechBlogApiClient {
         'Accept': 'application/json',
         'deviceOS': deviceOs,
         'timestamp': DateTime.now().toUtc().toIso8601String(),
-        'Authenticate': 'Bearer $accessToken',
+        if (accessToken != null && accessToken.isNotEmpty)
+          'Authenticate': 'Bearer $accessToken',
         if (jsonBody) 'Content-Type': 'application/json',
       },
       responseType: ResponseType.plain,
