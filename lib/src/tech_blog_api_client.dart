@@ -126,7 +126,7 @@ class TechBlogApiClient {
   /// v2 게시글 상세를 조회합니다.
   Future<PostResponse> getPostV2({
     required String postId,
-    required String accessToken,
+    String? accessToken,
   }) async {
     final response = await dio.requestUri<dynamic>(
       Uri.parse('$baseUrl/v2/posts/$postId'),
