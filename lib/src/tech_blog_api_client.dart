@@ -142,7 +142,9 @@ class TechBlogApiClient {
     required CreatePostRequest post,
     MultipartFile? thumbnail,
   }) async {
-    final payload = <String, dynamic>{'post': jsonEncode(post.toJson())};
+    final payload = <String, dynamic>{
+      'post': _jsonMultipartPart(post.toJson()),
+    };
     if (thumbnail != null) {
       payload['thumbnail'] = thumbnail;
     }
@@ -165,7 +167,7 @@ class TechBlogApiClient {
     final requestData = thumbnail == null
         ? post.toJson()
         : FormData.fromMap({
-            'post': jsonEncode(post.toJson()),
+            'post': _jsonMultipartPart(post.toJson()),
             'thumbnail': thumbnail,
           });
     final response = await dio.requestUri<dynamic>(
@@ -433,7 +435,7 @@ class TechBlogApiClient {
 
   /// 게시글을 생성합니다.
   ///
-  /// [post]는 `post` 필드에 JSON 문자열로 직렬화되어 전송됩니다.
+  /// [post]는 `post` 필드의 JSON 파트로 직렬화되어 전송됩니다.
   /// [thumbnail]이 있으면 `thumbnail` 바이너리 필드를 포함한 multipart 요청으로 전송됩니다.
   /// [accessToken]이 있으면 Authorization 헤더를 추가합니다.
   Future<PostResponse> createPost({
@@ -441,7 +443,9 @@ class TechBlogApiClient {
     MultipartFile? thumbnail,
     String? accessToken,
   }) async {
-    final payload = <String, dynamic>{'post': jsonEncode(post.toJson())};
+    final payload = <String, dynamic>{
+      'post': _jsonMultipartPart(post.toJson()),
+    };
     if (thumbnail != null) {
       payload['thumbnail'] = thumbnail;
     }
@@ -476,7 +480,7 @@ class TechBlogApiClient {
   /// 게시글을 부분 수정합니다.
   ///
   /// [thumbnail]이 없으면 JSON PATCH, 있으면 multipart PATCH로 요청합니다.
-  /// multipart 모드에서는 [post]가 `post` 텍스트 필드(JSON 문자열)로 직렬화됩니다.
+  /// multipart 모드에서는 [post]가 `post` JSON 파트로 직렬화됩니다.
   Future<PostResponse> patchPost({
     required String postId,
     required String accessToken,
@@ -486,7 +490,7 @@ class TechBlogApiClient {
     final requestData = thumbnail == null
         ? post.toJson()
         : FormData.fromMap({
-            'post': jsonEncode(post.toJson()),
+            'post': _jsonMultipartPart(post.toJson()),
             'thumbnail': thumbnail,
           });
     final headers = <String, String>{
@@ -705,6 +709,14 @@ class TechBlogApiClient {
       },
       responseType: ResponseType.plain,
       validateStatus: (_) => true,
+    );
+  }
+
+  MultipartFile _jsonMultipartPart(Map<String, dynamic> payload) {
+    return MultipartFile.fromString(
+      jsonEncode(payload),
+      filename: 'post.json',
+      contentType: DioMediaType.parse(Headers.jsonContentType),
     );
   }
 

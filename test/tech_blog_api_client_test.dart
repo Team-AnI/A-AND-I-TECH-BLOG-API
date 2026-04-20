@@ -14,7 +14,7 @@ void main() {
         baseUrl: baseUrl,
         handler: (options, ignoredBody, ignoredData) async {
           expect(options.method, 'GET');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts?page=0&size=20'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts?page=0&size=20'));
           expect(_headerValue(options.headers, 'accept'), 'application/json');
 
           return _jsonResponse({
@@ -85,7 +85,7 @@ void main() {
         baseUrl: baseUrl,
         handler: (options, ignoredBody, ignoredData) async {
           expect(options.method, 'GET');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/$postId'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts/$postId'));
           expect(_headerValue(options.headers, 'accept'), 'application/json');
 
           return _jsonResponse({
@@ -146,7 +146,7 @@ void main() {
           expect(options.method, 'GET');
           expect(
             options.uri,
-            Uri.parse('$baseUrl/v1/posts/drafts?page=0&size=20'),
+            Uri.parse('$baseUrl/v2/posts/drafts?page=0&size=20'),
           );
 
           return _jsonResponse({
@@ -173,7 +173,7 @@ void main() {
           expect(options.method, 'GET');
           expect(
             options.uri,
-            Uri.parse('$baseUrl/v1/posts/me?page=1&size=10&status=Published'),
+            Uri.parse('$baseUrl/v2/posts/me?page=1&size=10&status=Published'),
           );
           expect(
             _headerValue(options.headers, 'authorization'),
@@ -210,7 +210,7 @@ void main() {
           expect(options.method, 'GET');
           expect(
             options.uri,
-            Uri.parse('$baseUrl/v1/posts/drafts/me?page=0&size=20'),
+            Uri.parse('$baseUrl/v2/posts/drafts/me?page=0&size=20'),
           );
           expect(
             _headerValue(options.headers, 'authorization'),
@@ -236,20 +236,24 @@ void main() {
     test('sends multipart POST and parses created post', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
+        handler: (options, body, ignoredData) async {
           expect(options.method, 'POST');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts'));
           expect(_headerValue(options.headers, 'accept'), 'application/json');
 
           final requestData = options.data;
           expect(requestData, isA<FormData>());
           final formData = requestData! as FormData;
-          expect(formData.fields, hasLength(1));
-          expect(formData.fields.single.key, 'post');
-          final postPayload = jsonDecode(formData.fields.single.value);
-          expect(postPayload['title'], 'New Post');
-          expect(postPayload['author']['id'], 'owner-1');
-          expect(postPayload['status'], 'Draft');
+          expect(formData.files, hasLength(1));
+          expect(formData.files.single.key, 'post');
+          final postPart = formData.files.single.value;
+          expect(postPart.filename, 'post.json');
+          expect(postPart.contentType?.mimeType, 'application/json');
+          expect(body, contains('name="post"'));
+          expect(body, contains('application/json'));
+          expect(body, contains('"title":"New Post"'));
+          expect(body, contains('"id":"owner-1"'));
+          expect(body, contains('"status":"Draft"'));
 
           return _jsonResponse({
             'id': '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a',
@@ -318,7 +322,7 @@ void main() {
         baseUrl: baseUrl,
         handler: (options, body, _) async {
           expect(options.method, 'PATCH');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/$postId'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts/$postId'));
           expect(
             _headerValue(options.headers, 'authorization'),
             'Bearer access-token',
@@ -358,15 +362,21 @@ void main() {
     test('sends multipart PATCH request when thumbnail is present', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
+        handler: (options, body, ignoredData) async {
           expect(options.method, 'PATCH');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/$postId'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts/$postId'));
 
           final requestData = options.data;
           expect(requestData, isA<FormData>());
           final formData = requestData! as FormData;
-          expect(formData.fields.any((f) => f.key == 'post'), isTrue);
+          final postPart =
+              formData.files.firstWhere((entry) => entry.key == 'post').value;
+          expect(postPart.filename, 'post.json');
+          expect(postPart.contentType?.mimeType, 'application/json');
           expect(formData.files.any((f) => f.key == 'thumbnail'), isTrue);
+          expect(body, contains('name="post"'));
+          expect(body, contains('application/json'));
+          expect(body, contains('"title":"Updated with image"'));
 
           return _jsonResponse({
             'id': postId,
@@ -401,7 +411,7 @@ void main() {
         baseUrl: baseUrl,
         handler: (options, ignoredBody, ignoredData) async {
           expect(options.method, 'DELETE');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/$postId'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts/$postId'));
 
           return _jsonResponse({
             'success': true,
@@ -448,7 +458,7 @@ void main() {
           expect(options.method, 'POST');
           expect(
             options.uri,
-            Uri.parse('$baseUrl/v1/posts/$postId/collaborators'),
+            Uri.parse('$baseUrl/v2/posts/$postId/collaborators'),
           );
           expect(
             _headerValue(options.headers, 'authorization'),
@@ -524,7 +534,7 @@ void main() {
         baseUrl: baseUrl,
         handler: (options, ignoredBody, ignoredData) async {
           expect(options.method, 'POST');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/images'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts/images'));
 
           final requestData = options.data;
           expect(requestData, isA<FormData>());
