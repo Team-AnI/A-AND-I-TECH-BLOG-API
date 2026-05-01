@@ -45,11 +45,12 @@ import 'package:aandi_tech_blog/aandi_tech_blog.dart';
 
 `TechBlogApiClient`가 아래 기능을 제공합니다.
 
-- `listPosts`: 게시글 목록 조회 (`GET /v1/posts`)
-- `getPost`: 게시글 상세 조회 (`GET /v1/posts/{postId}`)
-- `listDrafts`: 초안 목록 조회 (`GET /v1/posts/drafts`)
-- `listMyPosts`: 내 게시글 목록 조회 (`GET /v1/posts/me`)
-- `listMyDrafts`: 내 초안 목록 조회 (`GET /v1/posts/drafts/me`)
+- `listBlogs`: 블로그 목록 조회 (`GET /v2/blogs`)
+- `listLectures`: 강의자료 목록 조회 (`GET /v2/lectures`)
+- `getBlog`: 블로그 상세 조회 (`GET /v2/blogs/{postId}`)
+- `getLecture`: 강의자료 상세 조회 (`GET /v2/lectures/{postId}`)
+- `listMyBlogs`, `listMyLectures`: 내 게시글 목록 조회
+- `listMyBlogDrafts`, `listMyLectureDrafts`: 내 초안 목록 조회
 - `createPost`: 게시글 생성 (`POST /v1/posts`)
 - `patchPost`: 게시글 부분 수정 (`PATCH /v1/posts/{postId}`)
 - `deletePost`: 게시글 삭제 (`DELETE /v1/posts/{postId}`)
@@ -58,7 +59,7 @@ import 'package:aandi_tech_blog/aandi_tech_blog.dart';
 
 인증 관련 참고:
 
-- 인증이 필요한 메서드(`listMyPosts`, `listMyDrafts`, `patchPost`, `addCollaborator`)는 `accessToken` 파라미터가 필수입니다.
+- 인증이 필요한 메서드(`listMyBlogs`, `listMyLectures`, `listMyBlogDrafts`, `listMyLectureDrafts`, `patchPost`, `addCollaborator`)는 `accessToken` 파라미터가 필수입니다.
 - `createPost`, `deletePost`는 시그니처상 `accessToken`이 선택값입니다. 실제 서버 정책에 따라 토큰이 필요할 수 있습니다.
 
 ## 빠른 시작
@@ -76,14 +77,14 @@ final client = TechBlogApiClient(
 );
 
 // 1) 게시글 목록 조회
-final PagedPostResponse posts = await client.listPosts(
+final PagedPostResponse posts = await client.listBlogs(
   page: 0,
   size: 20,
   status: PostStatus.published,
 );
 
 // 2) 게시글 상세 조회
-final PostResponse post = await client.getPost(
+final PostResponse post = await client.getBlog(
   postId: '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a',
 );
 
@@ -202,7 +203,7 @@ Multipart 요청 규칙:
 
 | 타입 | 용도 | 핵심 필드(타입) | 비고 |
 |---|---|---|---|
-| `PostStatus` | 게시글 상태 enum | `draft/published/deleted` | API 문자열: `Draft`, `Published`, `Deleted` |
+| `PostStatus` | 게시글 상태 enum | `draft/scheduled/published/deleted` | API 문자열: `Draft`, `Scheduled`, `Published`, `Deleted` |
 | `PostAuthor` | 작성자/협업자 | `id(String)`, `nickname(String?)`, `profileImageUrl(String?)` | `id` 필수 |
 | `PostResponse` | 게시글 단건 응답 | `id(String)`, `title(String)`, `status(PostStatus)`, `author(PostAuthor)`, `collaborators(List<PostAuthor>)`, `createdAt(DateTime?)` | 상세 조회/생성/수정/협업자 응답에 사용 |
 | `PagedPostResponse` | 목록 페이징 응답 | `items(List<PostResponse>)`, `page(int)`, `size(int)`, `totalElements(int)`, `totalPages(int)` | 목록 계열 API 공통 |
@@ -273,3 +274,9 @@ flutter test packages/tech_blog/test/tech_blog_api_client_test.dart
 - `createPost`, `patchPost`의 multipart 모드에서는 내부적으로 `post`를 JSON 문자열로 직렬화해 `post` 필드에 넣습니다.
 - 인증 토큰은 메서드 파라미터(`accessToken`) 또는 `Dio` interceptor 방식 중 하나로 일관되게 운영하는 것을 권장합니다.
 - 서버 에러 payload에 `error.message`, `error.code`가 있으면 `TechBlogApiException`으로 변환해 전달합니다.
+
+
+## Deprecated 안내
+
+- 범용 조회 메서드(`listPosts`, `getPost`, `listMyPosts`, `listDrafts`, `listMyDrafts` 및 `*V2` 변형)는 deprecated 처리되었습니다.
+- 조회 시에는 타입별 전용 메서드(`listBlogs`, `listLectures`, `getBlog`, `getLecture` 등)를 사용하세요.
