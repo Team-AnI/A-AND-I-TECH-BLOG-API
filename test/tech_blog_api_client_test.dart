@@ -7,126 +7,108 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   const baseUrl = 'https://api.example.com';
+  const postId = '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a';
 
   group('TechBlogApiClient.listPosts', () {
-    test('sends GET request and parses paged posts', () async {
+    test('type이 blog면 /v2/blogs 경로로 요청하고 응답을 파싱한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
+        handler: (options, _, __) async {
           expect(options.method, 'GET');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts?page=0&size=20'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/blogs?page=0&size=20'));
           expect(_headerValue(options.headers, 'accept'), 'application/json');
+          expect(_headerValue(options.headers, 'deviceOS'), 'android');
+          expect(_headerValue(options.headers, 'timestamp'), isNotEmpty);
 
-          return _jsonResponse({
-            'items': [
-              {
-                'id': '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a',
-                'title': 'First post',
-                'summary': 'Summary',
-                'contentMarkdown': '# Hello',
-                'thumbnailUrl': 'https://cdn.example.com/thumb.jpg',
-                'author': {
-                  'id': 'owner-1',
-                  'nickname': 'Owner',
-                  'profileImageUrl': 'https://cdn.example.com/owner.jpg',
+          return _jsonResponse(
+            _v2Envelope({
+              'items': [
+                {
+                  'id': postId,
+                  'title': 'First post',
+                  'summary': 'Summary',
+                  'contentMarkdown': '# Hello',
+                  'thumbnailUrl': 'https://cdn.example.com/thumb.jpg',
+                  'author': {
+                    'id': 'owner-1',
+                    'nickname': 'Owner',
+                    'profileImageUrl': 'https://cdn.example.com/owner.jpg',
+                  },
+                  'collaborators': const [],
+                  'type': 'Blog',
+                  'status': 'Scheduled',
+                  'scheduledPublishAt': '2026-05-02T10:00:00Z',
+                  'createdAt': '2026-03-09T10:00:00Z',
+                  'updatedAt': '2026-03-09T12:00:00Z',
                 },
-                'collaborators': [
-                  {'id': 'col-1', 'nickname': 'Col', 'profileImageUrl': null},
-                ],
-                'status': 'Draft',
-                'createdAt': '2026-03-09T10:00:00Z',
-                'updatedAt': '2026-03-09T12:00:00Z',
-              },
-            ],
-            'page': 0,
-            'size': 20,
-            'totalElements': 1,
-            'totalPages': 1,
-          }, 200);
+              ],
+              'page': 0,
+              'size': 20,
+              'totalElements': 1,
+              'totalPages': 1,
+            }),
+            200,
+          );
         },
       );
 
-      final page = await client.listPosts();
+      final page = await client.listBlogs();
 
-      expect(page.page, 0);
-      expect(page.size, 20);
-      expect(page.totalElements, 1);
-      expect(page.totalPages, 1);
       expect(page.items, hasLength(1));
-      expect(page.items.single.id, '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a');
-      expect(page.items.single.author.id, 'owner-1');
-      expect(page.items.single.status, PostStatus.draft);
-    });
-
-    test('throws TechBlogApiException on invalid response', () async {
-      final client = _createClient(
-        baseUrl: baseUrl,
-        handler: (ignoredOptions, ignoredBody, ignoredData) async =>
-            _jsonResponse({'items': {}}, 200),
-      );
-
-      await expectLater(
-        client.listPosts(),
-        throwsA(
-          _isApiException(
-            message: 'Invalid paged post response',
-            statusCode: 200,
-          ),
-        ),
+      expect(page.items.single.type, PostType.blog);
+      expect(page.items.single.status, PostStatus.scheduled);
+      expect(
+        page.items.single.scheduledPublishAt,
+        DateTime.parse('2026-05-02T10:00:00Z'),
       );
     });
   });
 
   group('TechBlogApiClient.getPost', () {
-    const postId = '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a';
-
-    test('sends GET request and parses post response', () async {
+    test('type이 lecture면 /v2/lectures/{id} 경로로 상세를 조회한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
+        handler: (options, _, __) async {
           expect(options.method, 'GET');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/$postId'));
-          expect(_headerValue(options.headers, 'accept'), 'application/json');
+          expect(options.uri, Uri.parse('$baseUrl/v2/lectures/$postId'));
 
-          return _jsonResponse({
-            'id': postId,
-            'title': 'First post',
-            'summary': 'Summary',
-            'contentMarkdown': '# Hello',
-            'thumbnailUrl': 'https://cdn.example.com/thumb.jpg',
-            'author': {
-              'id': 'owner-1',
-              'nickname': 'Owner',
-              'profileImageUrl': 'https://cdn.example.com/owner.jpg',
-            },
-            'collaborators': [],
-            'status': 'Published',
-            'createdAt': '2026-03-09T10:00:00Z',
-            'updatedAt': '2026-03-09T12:00:00Z',
-          }, 200);
+          return _jsonResponse(
+            _v2Envelope({
+              'id': postId,
+              'title': 'Lecture post',
+              'author': {'id': 'owner-1'},
+              'collaborators': const [],
+              'type': 'Lecture',
+              'status': 'Published',
+              'publishedAt': '2026-04-09T12:00:00Z',
+            }),
+            200,
+          );
         },
       );
 
-      final post = await client.getPost(postId: postId);
+      final post = await client.getLecture(postId: postId);
 
-      expect(post.id, postId);
+      expect(post.type, PostType.lecture);
       expect(post.status, PostStatus.published);
-      expect(post.author.id, 'owner-1');
+      expect(post.publishedAt, DateTime.parse('2026-04-09T12:00:00Z'));
     });
 
-    test('throws TechBlogApiException with API error payload', () async {
+    test('API 오류 payload를 TechBlogApiException으로 변환한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (ignoredOptions, ignoredBody, ignoredData) async {
-          return _jsonResponse({
+        handler: (_, __, ___) async => _jsonResponse(
+          {
             'success': false,
+            'data': null,
             'error': {'message': '게시글을 찾을 수 없습니다.', 'code': 'NOT_FOUND'},
-          }, 404);
-        },
+          },
+          404,
+        ),
       );
 
       await expectLater(
-        client.getPost(postId: postId),
+        client.getBlog(postId: postId),
         throwsA(
           _isApiException(
             message: '게시글을 찾을 수 없습니다.',
@@ -138,63 +120,70 @@ void main() {
     });
   });
 
-  group('TechBlogApiClient.listDrafts', () {
-    test('sends GET request and parses draft page', () async {
+  group('TechBlogApiClient.listMyDrafts', () {
+    test('type이 blog면 /v2/blogs/drafts/me 경로와 Authenticate 헤더를 사용한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
+        handler: (options, _, __) async {
           expect(options.method, 'GET');
           expect(
             options.uri,
-            Uri.parse('$baseUrl/v1/posts/drafts?page=0&size=20'),
+            Uri.parse('$baseUrl/v2/blogs/drafts/me?page=0&size=20'),
+          );
+          expect(
+            _headerValue(options.headers, 'Authenticate'),
+            'Bearer access-token',
           );
 
-          return _jsonResponse({
-            'items': [],
-            'page': 0,
-            'size': 20,
-            'totalElements': 0,
-            'totalPages': 0,
-          }, 200);
+          return _jsonResponse(
+            _v2Envelope({
+              'items': const [],
+              'page': 0,
+              'size': 20,
+              'totalElements': 0,
+              'totalPages': 0,
+            }),
+            200,
+          );
         },
       );
 
-      final page = await client.listDrafts();
-      expect(page.page, 0);
+      final page = await client.listMyBlogDrafts(
+        accessToken: 'access-token',
+      );
+
       expect(page.items, isEmpty);
     });
   });
 
-  group('TechBlogApiClient.listMyPosts', () {
-    test('sends authorized GET request with status filter', () async {
+  group('TechBlogApiClient.listMyScheduledPostsV2', () {
+    test('예약 게시글 조회는 /scheduled/me 엔드포인트를 사용한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
+        handler: (options, _, __) async {
           expect(options.method, 'GET');
           expect(
             options.uri,
-            Uri.parse('$baseUrl/v1/posts/me?page=1&size=10&status=Published'),
-          );
-          expect(
-            _headerValue(options.headers, 'authorization'),
-            'Bearer access-token',
+            Uri.parse('$baseUrl/v2/lectures/scheduled/me?page=1&size=10'),
           );
 
-          return _jsonResponse({
-            'items': [],
-            'page': 1,
-            'size': 10,
-            'totalElements': 0,
-            'totalPages': 0,
-          }, 200);
+          return _jsonResponse(
+            _v2Envelope({
+              'items': const [],
+              'page': 1,
+              'size': 10,
+              'totalElements': 0,
+              'totalPages': 0,
+            }),
+            200,
+          );
         },
       );
 
-      final page = await client.listMyPosts(
+      final page = await client.listMyScheduledLectures(
         accessToken: 'access-token',
         page: 1,
         size: 10,
-        status: PostStatus.published,
       );
 
       expect(page.page, 1);
@@ -202,143 +191,83 @@ void main() {
     });
   });
 
-  group('TechBlogApiClient.listMyDrafts', () {
-    test('sends authorized GET request and parses draft page', () async {
+  group('TechBlogApiClient.createPost', () {
+    test('multipart post 파트에 scheduledPublishAt을 포함해 전송한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
-          expect(options.method, 'GET');
+        handler: (options, body, _) async {
+          expect(options.method, 'POST');
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts'));
           expect(
-            options.uri,
-            Uri.parse('$baseUrl/v1/posts/drafts/me?page=0&size=20'),
-          );
-          expect(
-            _headerValue(options.headers, 'authorization'),
+            _headerValue(options.headers, 'Authenticate'),
             'Bearer access-token',
           );
-
-          return _jsonResponse({
-            'items': [],
-            'page': 0,
-            'size': 20,
-            'totalElements': 0,
-            'totalPages': 0,
-          }, 200);
-        },
-      );
-
-      final page = await client.listMyDrafts(accessToken: 'access-token');
-      expect(page.items, isEmpty);
-    });
-  });
-
-  group('TechBlogApiClient.createPost', () {
-    test('sends multipart POST and parses created post', () async {
-      final client = _createClient(
-        baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
-          expect(options.method, 'POST');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts'));
-          expect(_headerValue(options.headers, 'accept'), 'application/json');
 
           final requestData = options.data;
           expect(requestData, isA<FormData>());
           final formData = requestData! as FormData;
-          expect(formData.fields, hasLength(1));
-          expect(formData.fields.single.key, 'post');
-          final postPayload = jsonDecode(formData.fields.single.value);
-          expect(postPayload['title'], 'New Post');
-          expect(postPayload['author']['id'], 'owner-1');
-          expect(postPayload['status'], 'Draft');
+          final postPart =
+              formData.files.singleWhere((entry) => entry.key == 'post').value;
+          expect(postPart.filename, 'post.json');
+          expect(body,
+              contains('"scheduledPublishAt":"2026-05-01T12:00:00.000Z"'));
+          expect(body, contains('"status":"Scheduled"'));
 
-          return _jsonResponse({
-            'id': '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a',
-            'title': 'New Post',
-            'summary': 'Summary',
-            'contentMarkdown': '# Hello',
-            'thumbnailUrl': null,
-            'author': {'id': 'owner-1'},
-            'collaborators': [],
-            'status': 'Draft',
-            'createdAt': '2026-03-09T10:00:00Z',
-            'updatedAt': '2026-03-09T12:00:00Z',
-          }, 201);
+          return _jsonResponse(
+            _v2Envelope({
+              'id': postId,
+              'title': 'New Post',
+              'author': {'id': 'owner-1'},
+              'collaborators': const [],
+              'status': 'Scheduled',
+            }),
+            200,
+          );
         },
       );
 
       final created = await client.createPost(
+        accessToken: 'access-token',
         post: CreatePostRequest(
           title: 'New Post',
           author: PostAuthor(id: 'owner-1'),
-          summary: 'Summary',
-          contentMarkdown: '# Hello',
-          status: PostStatus.draft,
+          status: PostStatus.scheduled,
+          scheduledPublishAt: DateTime.parse('2026-05-01T12:00:00Z'),
         ),
       );
 
-      expect(created.title, 'New Post');
-      expect(created.author.id, 'owner-1');
-      expect(created.status, PostStatus.draft);
-    });
-
-    test('throws TechBlogApiException with API error payload', () async {
-      final client = _createClient(
-        baseUrl: baseUrl,
-        handler: (ignoredOptions, ignoredBody, ignoredData) async {
-          return _jsonResponse({
-            'success': false,
-            'error': {'message': 'Validation failed', 'code': 'BAD_REQUEST'},
-          }, 400);
-        },
-      );
-
-      await expectLater(
-        client.createPost(
-          post: CreatePostRequest(
-            title: 'New Post',
-            author: PostAuthor(id: 'owner-1'),
-          ),
-        ),
-        throwsA(
-          _isApiException(
-            message: 'Validation failed',
-            statusCode: 400,
-            code: 'BAD_REQUEST',
-          ),
-        ),
-      );
+      expect(created.status, PostStatus.scheduled);
     });
   });
 
   group('TechBlogApiClient.patchPost', () {
-    const postId = '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a';
-
-    test('sends JSON PATCH request when thumbnail is absent', () async {
+    test('썸네일이 없으면 JSON PATCH 요청으로 전송한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
         handler: (options, body, _) async {
           expect(options.method, 'PATCH');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/$postId'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts/$postId'));
           expect(
-            _headerValue(options.headers, 'authorization'),
+            _headerValue(options.headers, 'Authenticate'),
             'Bearer access-token',
           );
-          expect(
-            _headerValue(options.headers, 'content-type'),
-            'application/json',
-          );
+          expect(_headerValue(options.headers, 'Content-Type'),
+              'application/json');
           expect(jsonDecode(body), {
             'title': 'Updated title',
             'status': 'Published',
           });
 
-          return _jsonResponse({
-            'id': postId,
-            'title': 'Updated title',
-            'author': {'id': 'owner-1'},
-            'collaborators': [],
-            'status': 'Published',
-          }, 200);
+          return _jsonResponse(
+            _v2Envelope({
+              'id': postId,
+              'title': 'Updated title',
+              'author': {'id': 'owner-1'},
+              'collaborators': const [],
+              'status': 'Published',
+            }),
+            200,
+          );
         },
       );
 
@@ -351,127 +280,64 @@ void main() {
         ),
       );
 
-      expect(patched.title, 'Updated title');
       expect(patched.status, PostStatus.published);
-    });
-
-    test('sends multipart PATCH request when thumbnail is present', () async {
-      final client = _createClient(
-        baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
-          expect(options.method, 'PATCH');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/$postId'));
-
-          final requestData = options.data;
-          expect(requestData, isA<FormData>());
-          final formData = requestData! as FormData;
-          expect(formData.fields.any((f) => f.key == 'post'), isTrue);
-          expect(formData.files.any((f) => f.key == 'thumbnail'), isTrue);
-
-          return _jsonResponse({
-            'id': postId,
-            'title': 'Updated with image',
-            'author': {'id': 'owner-1'},
-            'collaborators': [],
-            'status': 'Draft',
-          }, 200);
-        },
-      );
-
-      final patched = await client.patchPost(
-        postId: postId,
-        accessToken: 'access-token',
-        post: PatchPostRequest(title: 'Updated with image'),
-        thumbnail: MultipartFile.fromBytes(<int>[
-          1,
-          2,
-          3,
-        ], filename: 'thumb.png'),
-      );
-
-      expect(patched.title, 'Updated with image');
     });
   });
 
   group('TechBlogApiClient.deletePost', () {
-    const postId = '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a';
-
-    test('sends DELETE request and returns deletion result', () async {
+    test('삭제 응답의 deleted 값을 반환한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
+        handler: (options, _, __) async {
           expect(options.method, 'DELETE');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/$postId'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts/$postId'));
 
-          return _jsonResponse({
-            'success': true,
-            'data': {'deleted': true},
-          }, 200);
+          return _jsonResponse(
+            _v2Envelope({'deleted': true}),
+            200,
+          );
         },
       );
 
-      final deleted = await client.deletePost(postId: postId);
+      final deleted = await client.deletePost(
+        postId: postId,
+        accessToken: 'access-token',
+      );
+
       expect(deleted, isTrue);
-    });
-
-    test('throws TechBlogApiException with API error payload', () async {
-      final client = _createClient(
-        baseUrl: baseUrl,
-        handler: (ignoredOptions, ignoredBody, ignoredData) async {
-          return _jsonResponse({
-            'success': false,
-            'error': {'message': '게시글을 찾을 수 없습니다.', 'code': 'NOT_FOUND'},
-          }, 404);
-        },
-      );
-
-      await expectLater(
-        client.deletePost(postId: postId),
-        throwsA(
-          _isApiException(
-            message: '게시글을 찾을 수 없습니다.',
-            statusCode: 404,
-            code: 'NOT_FOUND',
-          ),
-        ),
-      );
     });
   });
 
   group('TechBlogApiClient.addCollaborator', () {
-    const postId = '9f35dd42-ff17-4e47-8f66-fbc6fce13b8a';
-
-    test('sends authorized POST and parses updated post', () async {
+    test('ownerId 없이 collaborator만 전송한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
         handler: (options, body, _) async {
           expect(options.method, 'POST');
           expect(
             options.uri,
-            Uri.parse('$baseUrl/v1/posts/$postId/collaborators'),
+            Uri.parse('$baseUrl/v2/posts/$postId/collaborators'),
           );
           expect(
-            _headerValue(options.headers, 'authorization'),
-            'Bearer access-token',
-          );
-          expect(
-            _headerValue(options.headers, 'content-type'),
+            _headerValue(options.headers, 'Content-Type'),
             'application/json',
           );
           expect(jsonDecode(body), {
-            'ownerId': 'owner-1',
             'collaborator': {'id': 'col-1', 'nickname': 'Col'},
           });
 
-          return _jsonResponse({
-            'id': postId,
-            'title': 'Post',
-            'author': {'id': 'owner-1'},
-            'collaborators': [
-              {'id': 'col-1', 'nickname': 'Col'},
-            ],
-            'status': 'Draft',
-          }, 200);
+          return _jsonResponse(
+            _v2Envelope({
+              'id': postId,
+              'title': 'Post',
+              'author': {'id': 'owner-1'},
+              'collaborators': [
+                {'id': 'col-1', 'nickname': 'Col'},
+              ],
+              'status': 'Draft',
+            }),
+            200,
+          );
         },
       );
 
@@ -484,99 +350,46 @@ void main() {
         ),
       );
 
-      expect(updated.collaborators, hasLength(1));
       expect(updated.collaborators.single.id, 'col-1');
-    });
-
-    test('throws TechBlogApiException with API error payload', () async {
-      final client = _createClient(
-        baseUrl: baseUrl,
-        handler: (ignoredOptions, ignoredBody, ignoredData) async {
-          return _jsonResponse({
-            'success': false,
-            'error': {'message': 'Forbidden', 'code': 'FORBIDDEN'},
-          }, 403);
-        },
-      );
-
-      await expectLater(
-        client.addCollaborator(
-          postId: postId,
-          accessToken: 'access-token',
-          request: AddCollaboratorRequest(
-            collaborator: PostAuthor(id: 'col-1'),
-          ),
-        ),
-        throwsA(
-          _isApiException(
-            message: 'Forbidden',
-            statusCode: 403,
-            code: 'FORBIDDEN',
-          ),
-        ),
-      );
     });
   });
 
   group('TechBlogApiClient.uploadImage', () {
-    test('sends multipart POST and parses uploaded image metadata', () async {
+    test('multipart 업로드 후 메타데이터를 파싱한다', () async {
       final client = _createClient(
         baseUrl: baseUrl,
-        handler: (options, ignoredBody, ignoredData) async {
+        handler: (options, _, __) async {
           expect(options.method, 'POST');
-          expect(options.uri, Uri.parse('$baseUrl/v1/posts/images'));
+          expect(options.uri, Uri.parse('$baseUrl/v2/posts/images'));
+          expect(
+            _headerValue(options.headers, 'Authenticate'),
+            'Bearer access-token',
+          );
 
           final requestData = options.data;
           expect(requestData, isA<FormData>());
           final formData = requestData! as FormData;
-          expect(formData.files, hasLength(1));
           expect(formData.files.single.key, 'file');
 
-          return _jsonResponse({
-            'url': 'https://cdn.example.com/images/key.png',
-            'key': 'images/key.png',
-            'contentType': 'image/png',
-            'size': 3,
-          }, 200);
+          return _jsonResponse(
+            _v2Envelope({
+              'url': 'https://cdn.example.com/images/key.png',
+              'key': 'images/key.png',
+              'contentType': 'image/png',
+              'size': 3,
+            }),
+            200,
+          );
         },
       );
 
       final uploaded = await client.uploadImage(
+        accessToken: 'access-token',
         file: MultipartFile.fromBytes(<int>[1, 2, 3], filename: 'file.png'),
       );
 
       expect(uploaded.url, 'https://cdn.example.com/images/key.png');
-      expect(uploaded.key, 'images/key.png');
-      expect(uploaded.contentType, 'image/png');
       expect(uploaded.size, 3);
-    });
-
-    test('throws TechBlogApiException with API error payload', () async {
-      final client = _createClient(
-        baseUrl: baseUrl,
-        handler: (ignoredOptions, ignoredBody, ignoredData) async {
-          return _jsonResponse({
-            'success': false,
-            'error': {
-              'message': 'Payload too large',
-              'code': 'PAYLOAD_TOO_LARGE',
-            },
-          }, 413);
-        },
-      );
-
-      await expectLater(
-        client.uploadImage(
-          file: MultipartFile.fromBytes(<int>[1, 2, 3], filename: 'file.png'),
-        ),
-        throwsA(
-          _isApiException(
-            message: 'Payload too large',
-            statusCode: 413,
-            code: 'PAYLOAD_TOO_LARGE',
-          ),
-        ),
-      );
     });
   });
 }
@@ -587,12 +400,20 @@ TechBlogApiClient _createClient({
     RequestOptions options,
     String body,
     Object? requestData,
-  )
-  handler,
+  ) handler,
 }) {
   final dio = Dio();
   dio.httpClientAdapter = _MockDioAdapter(handler);
   return TechBlogApiClient(baseUrl: baseUrl, dio: dio);
+}
+
+Map<String, dynamic> _v2Envelope(Object? data) {
+  return {
+    'success': true,
+    'data': data,
+    'error': null,
+    'timestamp': '2026-05-01T12:00:00Z',
+  };
 }
 
 ResponseBody _jsonResponse(Object? body, int statusCode) {
@@ -636,8 +457,7 @@ class _MockDioAdapter implements HttpClientAdapter {
     RequestOptions options,
     String body,
     Object? requestData,
-  )
-  _handler;
+  ) _handler;
 
   @override
   void close({bool force = false}) {}

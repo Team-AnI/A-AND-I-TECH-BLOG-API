@@ -4,10 +4,9 @@ import 'post_author.dart';
 class AddCollaboratorRequest {
   AddCollaboratorRequest({this.ownerId, required this.collaborator});
 
-  /// 게시글 소유자 ID입니다.
+  /// 레거시 호환용 소유자 ID입니다.
   ///
-  /// 일반 사용자 흐름에서는 생략 가능하며, 소유자를 명시해야 하는
-  /// 어드민/대리 작업 시나리오에서 함께 전송할 수 있습니다.
+  /// v2 스펙 전송 본문에는 포함되지 않습니다.
   final String? ownerId;
 
   /// 추가할 협업자 정보입니다. `id`는 필수입니다.
@@ -16,7 +15,6 @@ class AddCollaboratorRequest {
   /// API 요청 JSON으로 직렬화합니다.
   Map<String, dynamic> toJson() {
     return {
-      if (ownerId != null) 'ownerId': ownerId,
       'collaborator': collaborator.toJson(),
     };
   }

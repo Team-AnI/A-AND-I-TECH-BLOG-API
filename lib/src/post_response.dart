@@ -14,41 +14,49 @@ class PostResponse {
     required this.collaborators,
     this.type,
     required this.status,
+    this.scheduledPublishAt,
+    this.publishedAt,
     this.createdAt,
     this.updatedAt,
   });
 
-  /// 게시글 ID(UUID 문자열)
+  /// 게시글 ID(UUID 문자열)입니다.
   final String id;
 
-  /// 게시글 제목
+  /// 게시글 제목입니다.
   final String title;
 
-  /// 요약 텍스트
+  /// 요약 텍스트입니다.
   final String? summary;
 
-  /// Markdown 본문
+  /// Markdown 본문입니다.
   final String? contentMarkdown;
 
-  /// 썸네일 URL
+  /// 썸네일 URL입니다.
   final String? thumbnailUrl;
 
-  /// 작성자 정보
+  /// 작성자 정보입니다.
   final PostAuthor author;
 
-  /// 협업자 목록(없으면 빈 배열)
+  /// 협업자 목록입니다.
   final List<PostAuthor> collaborators;
 
-  /// 게시글 유형 (`Blog`, `Lecture`)
+  /// 게시글 유형 (`Blog`, `Lecture`)입니다.
   final PostType? type;
 
-  /// 게시 상태 (`Draft`, `Published`, `Deleted`)
+  /// 게시 상태 (`Draft`, `Scheduled`, `Published`, `Deleted`)입니다.
   final PostStatus status;
 
-  /// 생성 시각(ISO-8601 date-time)
+  /// 예약 게시 시각입니다.
+  final DateTime? scheduledPublishAt;
+
+  /// 실제 게시 시각입니다.
+  final DateTime? publishedAt;
+
+  /// 생성 시각입니다.
   final DateTime? createdAt;
 
-  /// 수정 시각(ISO-8601 date-time)
+  /// 수정 시각입니다.
   final DateTime? updatedAt;
 
   factory PostResponse.fromJson(Map<String, dynamic> json) {
@@ -68,14 +76,15 @@ class PostResponse {
           : PostAuthor(id: ''),
       collaborators: rawCollaborators is List
           ? rawCollaborators
-                .whereType<Map<String, dynamic>>()
-                .map(PostAuthor.fromJson)
-                .toList()
+              .whereType<Map<String, dynamic>>()
+              .map(PostAuthor.fromJson)
+              .toList(growable: false)
           : const <PostAuthor>[],
-      type: rawType == null || rawType.isEmpty
-          ? null
-          : postTypeFromApi(rawType),
+      type:
+          rawType == null || rawType.isEmpty ? null : postTypeFromApi(rawType),
       status: postStatusFromApi(rawStatus),
+      scheduledPublishAt: _parseDateTime(json['scheduledPublishAt']),
+      publishedAt: _parseDateTime(json['publishedAt']),
       createdAt: _parseDateTime(json['createdAt']),
       updatedAt: _parseDateTime(json['updatedAt']),
     );

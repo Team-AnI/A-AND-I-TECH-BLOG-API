@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:aandi_api_endpoints/aandi_api_endpoints.dart';
 import 'package:dio/dio.dart';
 
 import 'add_collaborator_request.dart';
@@ -24,114 +23,360 @@ class TechBlogApiClient {
     Dio? dio,
   }) : dio = dio ?? Dio();
 
-  /// API 서버 루트 URL
+  /// API 서버 루트 URL입니다.
   final String baseUrl;
 
   /// v2 요청 시 사용할 디바이스 OS입니다.
   final String deviceOs;
 
-  /// HTTP 클라이언트
+  /// HTTP 클라이언트입니다.
   final Dio dio;
 
-  /// v2 게시글 목록을 조회합니다.
-  Future<PagedPostResponse> listPostsV2({
+  /// Blog 게시글 목록을 조회합니다.
+  Future<PagedPostResponse> listBlogs({
+    String? accessToken,
+    int page = 0,
+    int size = 20,
+    PostStatus? status,
+  }) {
+    return _getPagedPosts(
+      path: '/v2/blogs',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+      status: status,
+    );
+  }
+
+  /// Lecture 게시글 목록을 조회합니다.
+  Future<PagedPostResponse> listLectures({
+    String? accessToken,
+    int page = 0,
+    int size = 20,
+    PostStatus? status,
+  }) {
+    return _getPagedPosts(
+      path: '/v2/lectures',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+      status: status,
+    );
+  }
+
+  /// 내 Blog 게시글 목록을 조회합니다.
+  Future<PagedPostResponse> listMyBlogs({
     required String accessToken,
     int page = 0,
     int size = 20,
     PostStatus? status,
-    PostType? type,
-  }) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts').replace(
-        queryParameters: {
-          'page': page.toString(),
-          'size': size.toString(),
-          if (status != null) 'status': status.toApi(),
-          if (type != null) 'type': type.toApi(),
-        },
-      ),
-      options: _v2Options(method: 'GET', accessToken: accessToken),
+  }) {
+    return _getPagedPosts(
+      path: '/v2/blogs/me',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+      status: status,
     );
-    final data = _unwrapV2DataMap(response);
-    return PagedPostResponse.fromJson(data);
+  }
+
+  /// 내 Lecture 게시글 목록을 조회합니다.
+  Future<PagedPostResponse> listMyLectures({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+    PostStatus? status,
+  }) {
+    return _getPagedPosts(
+      path: '/v2/lectures/me',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+      status: status,
+    );
+  }
+
+  /// Blog 초안 목록을 조회합니다.
+  Future<PagedPostResponse> listBlogDrafts({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+  }) {
+    return _getPagedPosts(
+      path: '/v2/blogs/drafts',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+    );
+  }
+
+  /// Lecture 초안 목록을 조회합니다.
+  Future<PagedPostResponse> listLectureDrafts({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+  }) {
+    return _getPagedPosts(
+      path: '/v2/lectures/drafts',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+    );
+  }
+
+  /// 내 Blog 초안 목록을 조회합니다.
+  Future<PagedPostResponse> listMyBlogDrafts({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+  }) {
+    return _getPagedPosts(
+      path: '/v2/blogs/drafts/me',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+    );
+  }
+
+  /// 내 Lecture 초안 목록을 조회합니다.
+  Future<PagedPostResponse> listMyLectureDrafts({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+  }) {
+    return _getPagedPosts(
+      path: '/v2/lectures/drafts/me',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+    );
+  }
+
+  /// 내 예약된 Blog 게시글 목록을 조회합니다.
+  Future<PagedPostResponse> listMyScheduledBlogs({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+  }) {
+    return _getPagedPosts(
+      path: '/v2/blogs/scheduled/me',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+    );
+  }
+
+  /// 내 예약된 Lecture 게시글 목록을 조회합니다.
+  Future<PagedPostResponse> listMyScheduledLectures({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+  }) {
+    return _getPagedPosts(
+      path: '/v2/lectures/scheduled/me',
+      accessToken: accessToken,
+      page: page,
+      size: size,
+    );
+  }
+
+  /// Blog 게시글 상세를 조회합니다.
+  Future<PostResponse> getBlog({
+    required String postId,
+    String? accessToken,
+  }) {
+    return _getPost(
+      path: '/v2/blogs/$postId',
+      accessToken: accessToken,
+    );
+  }
+
+  /// Lecture 게시글 상세를 조회합니다.
+  Future<PostResponse> getLecture({
+    required String postId,
+    String? accessToken,
+  }) {
+    return _getPost(
+      path: '/v2/lectures/$postId',
+      accessToken: accessToken,
+    );
+  }
+
+  /// v2 게시글 목록을 조회합니다.
+  @Deprecated(
+    'Use listBlogs/listLectures. Generic /v2/posts endpoints are deprecated.',
+  )
+  Future<PagedPostResponse> listPostsV2({
+    String? accessToken,
+    int page = 0,
+    int size = 20,
+    PostStatus? status,
+    PostType? type,
+  }) {
+    return switch (type) {
+      PostType.blog => listBlogs(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+          status: status,
+        ),
+      PostType.lecture => listLectures(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+          status: status,
+        ),
+      null => _getPagedPosts(
+          path: '/v2/posts',
+          accessToken: accessToken,
+          page: page,
+          size: size,
+          status: status,
+        ),
+    };
   }
 
   /// v2 초안 게시글 목록을 조회합니다.
+  @Deprecated(
+    'Use listBlogDrafts/listLectureDrafts. Generic /v2/posts endpoints are deprecated.',
+  )
   Future<PagedPostResponse> listDraftsV2({
     required String accessToken,
     int page = 0,
     int size = 20,
     PostType? type,
-  }) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts/drafts').replace(
-        queryParameters: {
-          'page': page.toString(),
-          'size': size.toString(),
-          if (type != null) 'type': type.toApi(),
-        },
-      ),
-      options: _v2Options(method: 'GET', accessToken: accessToken),
-    );
-    final data = _unwrapV2DataMap(response);
-    return PagedPostResponse.fromJson(data);
+  }) {
+    return switch (type) {
+      PostType.blog => listBlogDrafts(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+        ),
+      PostType.lecture => listLectureDrafts(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+        ),
+      null => _getPagedPosts(
+          path: '/v2/posts/drafts',
+          accessToken: accessToken,
+          page: page,
+          size: size,
+        ),
+    };
   }
 
   /// v2 현재 사용자 기준 게시글 목록을 조회합니다.
+  @Deprecated(
+    'Use listMyBlogs/listMyLectures. Generic /v2/posts endpoints are deprecated.',
+  )
   Future<PagedPostResponse> listMyPostsV2({
     required String accessToken,
     int page = 0,
     int size = 20,
     PostStatus? status,
     PostType? type,
-  }) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts/me').replace(
-        queryParameters: {
-          'page': page.toString(),
-          'size': size.toString(),
-          if (status != null) 'status': status.toApi(),
-          if (type != null) 'type': type.toApi(),
-        },
-      ),
-      options: _v2Options(method: 'GET', accessToken: accessToken),
-    );
-    final data = _unwrapV2DataMap(response);
-    return PagedPostResponse.fromJson(data);
+  }) {
+    return switch (type) {
+      PostType.blog => listMyBlogs(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+          status: status,
+        ),
+      PostType.lecture => listMyLectures(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+          status: status,
+        ),
+      null => _getPagedPosts(
+          path: '/v2/posts/me',
+          accessToken: accessToken,
+          page: page,
+          size: size,
+          status: status,
+        ),
+    };
   }
 
   /// v2 현재 사용자 기준 초안 목록을 조회합니다.
+  @Deprecated(
+    'Use listMyBlogDrafts/listMyLectureDrafts. Generic /v2/posts endpoints are deprecated.',
+  )
   Future<PagedPostResponse> listMyDraftsV2({
     required String accessToken,
     int page = 0,
     int size = 20,
     PostType? type,
-  }) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts/drafts/me').replace(
-        queryParameters: {
-          'page': page.toString(),
-          'size': size.toString(),
-          if (type != null) 'type': type.toApi(),
-        },
-      ),
-      options: _v2Options(method: 'GET', accessToken: accessToken),
-    );
-    final data = _unwrapV2DataMap(response);
-    return PagedPostResponse.fromJson(data);
+  }) {
+    return switch (type) {
+      PostType.blog => listMyBlogDrafts(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+        ),
+      PostType.lecture => listMyLectureDrafts(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+        ),
+      null => _getPagedPosts(
+          path: '/v2/posts/drafts/me',
+          accessToken: accessToken,
+          page: page,
+          size: size,
+        ),
+    };
+  }
+
+  /// v2 현재 사용자 기준 예약 게시글 목록을 조회합니다.
+  @Deprecated(
+    'Use listMyScheduledBlogs/listMyScheduledLectures. Generic /v2/posts endpoints are deprecated.',
+  )
+  Future<PagedPostResponse> listMyScheduledPostsV2({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+    PostType? type,
+  }) {
+    return switch (type) {
+      PostType.blog => listMyScheduledBlogs(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+        ),
+      PostType.lecture => listMyScheduledLectures(
+          accessToken: accessToken,
+          page: page,
+          size: size,
+        ),
+      null => _getPagedPosts(
+          path: '/v2/posts/scheduled/me',
+          accessToken: accessToken,
+          page: page,
+          size: size,
+        ),
+    };
   }
 
   /// v2 게시글 상세를 조회합니다.
+  @Deprecated(
+    'Use getBlog/getLecture. Generic /v2/posts endpoints are deprecated.',
+  )
   Future<PostResponse> getPostV2({
     required String postId,
-    required String accessToken,
-  }) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts/$postId'),
-      options: _v2Options(method: 'GET', accessToken: accessToken),
-    );
-    final data = _unwrapV2DataMap(response);
-    return PostResponse.fromJson(data);
+    String? accessToken,
+    PostType? type,
+  }) {
+    return switch (type) {
+      PostType.blog => getBlog(postId: postId, accessToken: accessToken),
+      PostType.lecture => getLecture(postId: postId, accessToken: accessToken),
+      null => _getPost(
+          path: '/v2/posts/$postId',
+          accessToken: accessToken,
+        ),
+    };
   }
 
   /// v2 게시글을 생성합니다.
@@ -139,18 +384,12 @@ class TechBlogApiClient {
     required String accessToken,
     required CreatePostRequest post,
     MultipartFile? thumbnail,
-  }) async {
-    final payload = <String, dynamic>{'post': jsonEncode(post.toJson())};
-    if (thumbnail != null) {
-      payload['thumbnail'] = thumbnail;
-    }
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts'),
-      data: FormData.fromMap(payload),
-      options: _v2Options(method: 'POST', accessToken: accessToken),
+  }) {
+    return _createPost(
+      accessToken: accessToken,
+      post: post,
+      thumbnail: thumbnail,
     );
-    final data = _unwrapV2DataMap(response);
-    return PostResponse.fromJson(data);
   }
 
   /// v2 게시글을 부분 수정합니다.
@@ -159,15 +398,299 @@ class TechBlogApiClient {
     required String accessToken,
     required PatchPostRequest post,
     MultipartFile? thumbnail,
+  }) {
+    return _patchPost(
+      postId: postId,
+      accessToken: accessToken,
+      post: post,
+      thumbnail: thumbnail,
+    );
+  }
+
+  /// v2 게시글 삭제 여부를 반환합니다.
+  Future<bool> deletePostV2({
+    required String postId,
+    required String accessToken,
+  }) {
+    return _deletePost(
+      postId: postId,
+      accessToken: accessToken,
+    );
+  }
+
+  /// v2 게시글에 협업자를 추가합니다.
+  Future<PostResponse> addCollaboratorV2({
+    required String postId,
+    required String accessToken,
+    required AddCollaboratorRequest request,
+  }) {
+    return _addCollaborator(
+      postId: postId,
+      accessToken: accessToken,
+      request: request,
+    );
+  }
+
+  /// v2 이미지를 업로드하고 공개 메타데이터를 반환합니다.
+  Future<ImageUploadResponse> uploadImageV2({
+    required String accessToken,
+    required MultipartFile file,
+  }) {
+    return _uploadImage(
+      accessToken: accessToken,
+      file: file,
+    );
+  }
+
+  /// 게시글 목록을 조회합니다.
+  @Deprecated(
+    'Use listBlogs/listLectures. Generic /v2/posts endpoints are deprecated.',
+  )
+  Future<PagedPostResponse> listPosts({
+    int page = 0,
+    int size = 20,
+    PostStatus? status,
+    PostType? type,
+    String? accessToken,
+  }) {
+    return listPostsV2(
+      accessToken: accessToken,
+      page: page,
+      size: size,
+      status: status,
+      type: type,
+    );
+  }
+
+  /// 초안 게시글 목록을 조회합니다.
+  @Deprecated(
+    'Use listBlogDrafts/listLectureDrafts. Generic /v2/posts endpoints are deprecated.',
+  )
+  Future<PagedPostResponse> listDrafts({
+    int page = 0,
+    int size = 20,
+    PostType? type,
+    String? accessToken,
+  }) {
+    return listDraftsV2(
+      accessToken: accessToken ?? '',
+      page: page,
+      size: size,
+      type: type,
+    );
+  }
+
+  /// 현재 사용자 기준(소유자/협업자) 게시글 목록을 조회합니다.
+  @Deprecated(
+    'Use listMyBlogs/listMyLectures. Generic /v2/posts endpoints are deprecated.',
+  )
+  Future<PagedPostResponse> listMyPosts({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+    PostStatus? status,
+    PostType? type,
+  }) {
+    return listMyPostsV2(
+      accessToken: accessToken,
+      page: page,
+      size: size,
+      status: status,
+      type: type,
+    );
+  }
+
+  /// 현재 사용자 기준 초안 목록을 조회합니다.
+  @Deprecated(
+    'Use listMyBlogDrafts/listMyLectureDrafts. Generic /v2/posts endpoints are deprecated.',
+  )
+  Future<PagedPostResponse> listMyDrafts({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+    PostType? type,
+  }) {
+    return listMyDraftsV2(
+      accessToken: accessToken,
+      page: page,
+      size: size,
+      type: type,
+    );
+  }
+
+  /// 현재 사용자 기준 예약 게시글 목록을 조회합니다.
+  @Deprecated(
+    'Use listMyScheduledBlogs/listMyScheduledLectures. Generic /v2/posts endpoints are deprecated.',
+  )
+  Future<PagedPostResponse> listMyScheduledPosts({
+    required String accessToken,
+    int page = 0,
+    int size = 20,
+    PostType? type,
+  }) {
+    return listMyScheduledPostsV2(
+      accessToken: accessToken,
+      page: page,
+      size: size,
+      type: type,
+    );
+  }
+
+  /// 게시글 상세를 조회합니다.
+  @Deprecated(
+    'Use getBlog/getLecture. Generic /v2/posts endpoints are deprecated.',
+  )
+  Future<PostResponse> getPost({
+    required String postId,
+    PostType? type,
+    String? accessToken,
+  }) {
+    return getPostV2(
+      postId: postId,
+      accessToken: accessToken,
+      type: type,
+    );
+  }
+
+  /// 게시글을 생성합니다.
+  Future<PostResponse> createPost({
+    required CreatePostRequest post,
+    MultipartFile? thumbnail,
+    String? accessToken,
+  }) {
+    return _createPost(
+      accessToken: accessToken,
+      post: post,
+      thumbnail: thumbnail,
+    );
+  }
+
+  /// 게시글을 부분 수정합니다.
+  Future<PostResponse> patchPost({
+    required String postId,
+    required String accessToken,
+    required PatchPostRequest post,
+    MultipartFile? thumbnail,
+  }) {
+    return _patchPost(
+      postId: postId,
+      accessToken: accessToken,
+      post: post,
+      thumbnail: thumbnail,
+    );
+  }
+
+  /// 게시글을 삭제합니다.
+  Future<bool> deletePost({
+    required String postId,
+    String? accessToken,
+  }) {
+    return _deletePost(
+      postId: postId,
+      accessToken: accessToken,
+    );
+  }
+
+  /// 게시글에 협업자를 추가합니다.
+  Future<PostResponse> addCollaborator({
+    required String postId,
+    required String accessToken,
+    required AddCollaboratorRequest request,
+  }) {
+    return _addCollaborator(
+      postId: postId,
+      accessToken: accessToken,
+      request: request,
+    );
+  }
+
+  /// 이미지를 업로드하고 공개 메타데이터를 반환합니다.
+  Future<ImageUploadResponse> uploadImage({
+    required MultipartFile file,
+    String? accessToken,
+  }) {
+    return _uploadImage(
+      accessToken: accessToken,
+      file: file,
+    );
+  }
+
+  Future<PagedPostResponse> _getPagedPosts({
+    required String path,
+    required String? accessToken,
+    required int page,
+    required int size,
+    PostStatus? status,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      _resolveUri(path).replace(
+        queryParameters: {
+          'page': page.toString(),
+          'size': size.toString(),
+          if (status != null) 'status': status.toApi(),
+        },
+      ),
+      options: _v2Options(method: 'GET', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    try {
+      return PagedPostResponse.fromJson(data);
+    } on FormatException {
+      throw TechBlogApiException(
+        'Invalid paged post response',
+        statusCode: response.statusCode,
+      );
+    }
+  }
+
+  Future<PostResponse> _getPost({
+    required String path,
+    required String? accessToken,
+  }) async {
+    final response = await dio.requestUri<dynamic>(
+      _resolveUri(path),
+      options: _v2Options(method: 'GET', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PostResponse.fromJson(data);
+  }
+
+  Future<PostResponse> _createPost({
+    required String? accessToken,
+    required CreatePostRequest post,
+    MultipartFile? thumbnail,
+  }) async {
+    final payload = <String, dynamic>{
+      'post': _jsonMultipartPart(post.toJson()),
+    };
+    if (thumbnail != null) {
+      payload['thumbnail'] = thumbnail;
+    }
+
+    final response = await dio.requestUri<dynamic>(
+      _resolveUri('/v2/posts'),
+      data: FormData.fromMap(payload),
+      options: _v2Options(method: 'POST', accessToken: accessToken),
+    );
+    final data = _unwrapV2DataMap(response);
+    return PostResponse.fromJson(data);
+  }
+
+  Future<PostResponse> _patchPost({
+    required String postId,
+    required String? accessToken,
+    required PatchPostRequest post,
+    MultipartFile? thumbnail,
   }) async {
     final requestData = thumbnail == null
         ? post.toJson()
         : FormData.fromMap({
-            'post': jsonEncode(post.toJson()),
+            'post': _jsonMultipartPart(post.toJson()),
             'thumbnail': thumbnail,
           });
+
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts/$postId'),
+      _resolveUri('/v2/posts/$postId'),
       data: requestData,
       options: _v2Options(
         method: 'PATCH',
@@ -179,13 +702,12 @@ class TechBlogApiClient {
     return PostResponse.fromJson(data);
   }
 
-  /// v2 게시글 삭제 여부를 반환합니다.
-  Future<bool> deletePostV2({
+  Future<bool> _deletePost({
     required String postId,
-    required String accessToken,
+    required String? accessToken,
   }) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts/$postId'),
+      _resolveUri('/v2/posts/$postId'),
       options: _v2Options(method: 'DELETE', accessToken: accessToken),
     );
     final data = _unwrapV2DataMap(response);
@@ -196,15 +718,14 @@ class TechBlogApiClient {
     return false;
   }
 
-  /// v2 게시글에 협업자를 추가합니다.
-  Future<PostResponse> addCollaboratorV2({
+  Future<PostResponse> _addCollaborator({
     required String postId,
-    required String accessToken,
+    required String? accessToken,
     required AddCollaboratorRequest request,
   }) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts/$postId/collaborators'),
-      data: {'collaborator': request.collaborator.toJson()},
+      _resolveUri('/v2/posts/$postId/collaborators'),
+      data: request.toJson(),
       options: _v2Options(
         method: 'POST',
         accessToken: accessToken,
@@ -215,13 +736,12 @@ class TechBlogApiClient {
     return PostResponse.fromJson(data);
   }
 
-  /// v2 이미지를 업로드하고 공개 메타데이터를 반환합니다.
-  Future<ImageUploadResponse> uploadImageV2({
-    required String accessToken,
+  Future<ImageUploadResponse> _uploadImage({
+    required String? accessToken,
     required MultipartFile file,
   }) async {
     final response = await dio.requestUri<dynamic>(
-      Uri.parse('$baseUrl/v2/posts/images'),
+      _resolveUri('/v2/posts/images'),
       data: FormData.fromMap({'file': file}),
       options: _v2Options(method: 'POST', accessToken: accessToken),
     );
@@ -229,404 +749,8 @@ class TechBlogApiClient {
     return ImageUploadResponse.fromJson(data);
   }
 
-  /// 게시글 목록을 조회합니다.
-  ///
-  /// [page]/[size]로 페이징하고, [status]로 상태 필터를 적용할 수 있습니다.
-  /// `size`의 서버 최대값은 OpenAPI 기준 100입니다.
-  Future<PagedPostResponse> listPosts({
-    int page = 0,
-    int size = 20,
-    PostStatus? status,
-  }) async {
-    final queryParameters = {
-      'page': page.toString(),
-      'size': size.toString(),
-      if (status != null) 'status': status.toApi(),
-    };
-
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(baseUrl, AandiApiEndpointTemplate.posts),
-      ).replace(queryParameters: queryParameters),
-      options: Options(
-        method: 'GET',
-        headers: {'Accept': 'application/json'},
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      final error = decoded['error'];
-      final message = error is Map<String, dynamic>
-          ? error['message']?.toString() ?? '요청에 실패했습니다.'
-          : '요청에 실패했습니다.';
-      final code =
-          error is Map<String, dynamic> ? error['code']?.toString() : null;
-      throw TechBlogApiException(message, statusCode: statusCode, code: code);
-    }
-
-    try {
-      return PagedPostResponse.fromJson(decoded);
-    } on FormatException {
-      throw TechBlogApiException(
-        'Invalid paged post response',
-        statusCode: statusCode,
-      );
-    }
-  }
-
-  /// 초안 게시글 목록을 조회합니다.
-  Future<PagedPostResponse> listDrafts({int page = 0, int size = 20}) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(
-            baseUrl, AandiApiEndpointTemplate.draftPosts),
-      ).replace(
-        queryParameters: {'page': page.toString(), 'size': size.toString()},
-      ),
-      options: Options(
-        method: 'GET',
-        headers: {'Accept': 'application/json'},
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      _throwApiError(decoded, statusCode: statusCode);
-    }
-
-    try {
-      return PagedPostResponse.fromJson(decoded);
-    } on FormatException {
-      throw TechBlogApiException(
-        'Invalid paged post response',
-        statusCode: statusCode,
-      );
-    }
-  }
-
-  /// 현재 사용자 기준(소유자/협업자) 게시글 목록을 조회합니다.
-  ///
-  /// [accessToken]은 Bearer 토큰 문자열입니다.
-  /// 토큰이 유효하지 않으면 일반적으로 401/403 [TechBlogApiException]이 발생합니다.
-  Future<PagedPostResponse> listMyPosts({
-    required String accessToken,
-    int page = 0,
-    int size = 20,
-    PostStatus? status,
-  }) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(baseUrl, AandiApiEndpointTemplate.myPosts),
-      ).replace(
-        queryParameters: {
-          'page': page.toString(),
-          'size': size.toString(),
-          if (status != null) 'status': status.toApi(),
-        },
-      ),
-      options: Options(
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Accept': 'application/json',
-        },
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      _throwApiError(decoded, statusCode: statusCode);
-    }
-
-    try {
-      return PagedPostResponse.fromJson(decoded);
-    } on FormatException {
-      throw TechBlogApiException(
-        'Invalid paged post response',
-        statusCode: statusCode,
-      );
-    }
-  }
-
-  /// 현재 사용자 기준(소유자/협업자) 초안 목록을 조회합니다.
-  ///
-  /// [accessToken]이 유효하지 않으면 401/403 [TechBlogApiException]이 발생할 수 있습니다.
-  Future<PagedPostResponse> listMyDrafts({
-    required String accessToken,
-    int page = 0,
-    int size = 20,
-  }) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(
-            baseUrl, AandiApiEndpointTemplate.myDraftPosts),
-      ).replace(
-        queryParameters: {'page': page.toString(), 'size': size.toString()},
-      ),
-      options: Options(
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Accept': 'application/json',
-        },
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      _throwApiError(decoded, statusCode: statusCode);
-    }
-
-    try {
-      return PagedPostResponse.fromJson(decoded);
-    } on FormatException {
-      throw TechBlogApiException(
-        'Invalid paged post response',
-        statusCode: statusCode,
-      );
-    }
-  }
-
-  /// 게시글 상세를 조회합니다.
-  Future<PostResponse> getPost({required String postId}) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(
-            baseUrl, AandiApiEndpointPath.postById(postId)),
-      ),
-      options: Options(
-        method: 'GET',
-        headers: {'Accept': 'application/json'},
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      _throwApiError(decoded, statusCode: statusCode);
-    }
-
-    return PostResponse.fromJson(decoded);
-  }
-
-  /// 게시글을 생성합니다.
-  ///
-  /// [post]는 `post` 필드에 JSON 문자열로 직렬화되어 전송됩니다.
-  /// [thumbnail]이 있으면 `thumbnail` 바이너리 필드를 포함한 multipart 요청으로 전송됩니다.
-  /// [accessToken]이 있으면 Authorization 헤더를 추가합니다.
-  Future<PostResponse> createPost({
-    required CreatePostRequest post,
-    MultipartFile? thumbnail,
-    String? accessToken,
-  }) async {
-    final payload = <String, dynamic>{'post': jsonEncode(post.toJson())};
-    if (thumbnail != null) {
-      payload['thumbnail'] = thumbnail;
-    }
-    final formData = FormData.fromMap(payload);
-
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(baseUrl, AandiApiEndpointTemplate.posts),
-      ),
-      data: formData,
-      options: Options(
-        method: 'POST',
-        headers: {
-          if (accessToken != null) 'Authorization': 'Bearer $accessToken',
-          'Accept': 'application/json',
-        },
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      _throwApiError(decoded, statusCode: statusCode);
-    }
-
-    return PostResponse.fromJson(decoded);
-  }
-
-  /// 게시글을 부분 수정합니다.
-  ///
-  /// [thumbnail]이 없으면 JSON PATCH, 있으면 multipart PATCH로 요청합니다.
-  /// multipart 모드에서는 [post]가 `post` 텍스트 필드(JSON 문자열)로 직렬화됩니다.
-  Future<PostResponse> patchPost({
-    required String postId,
-    required String accessToken,
-    required PatchPostRequest post,
-    MultipartFile? thumbnail,
-  }) async {
-    final requestData = thumbnail == null
-        ? post.toJson()
-        : FormData.fromMap({
-            'post': jsonEncode(post.toJson()),
-            'thumbnail': thumbnail,
-          });
-    final headers = <String, String>{
-      'Authorization': 'Bearer $accessToken',
-      'Accept': 'application/json',
-      if (thumbnail == null) 'Content-Type': 'application/json',
-    };
-
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(
-            baseUrl, AandiApiEndpointPath.postById(postId)),
-      ),
-      data: requestData,
-      options: Options(
-        method: 'PATCH',
-        headers: headers,
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      _throwApiError(decoded, statusCode: statusCode);
-    }
-
-    return PostResponse.fromJson(decoded);
-  }
-
-  /// 게시글을 삭제합니다.
-  ///
-  /// 서버가 반환한 `data`에서 첫 번째 bool 값을 읽어 삭제 여부를 반환합니다.
-  Future<bool> deletePost({required String postId, String? accessToken}) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(
-            baseUrl, AandiApiEndpointPath.postById(postId)),
-      ),
-      options: Options(
-        method: 'DELETE',
-        headers: {
-          if (accessToken != null) 'Authorization': 'Bearer $accessToken',
-          'Accept': 'application/json',
-        },
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      _throwApiError(decoded, statusCode: statusCode);
-    }
-
-    final data = decoded['data'];
-    if (data is bool) {
-      return data;
-    }
-    if (data is Map<String, dynamic>) {
-      final firstBool = data.values.whereType<bool>();
-      if (firstBool.isNotEmpty) {
-        return firstBool.first;
-      }
-    }
-    if (data is Map) {
-      final firstBool = data.values.whereType<bool>();
-      if (firstBool.isNotEmpty) {
-        return firstBool.first;
-      }
-    }
-    return true;
-  }
-
-  /// 게시글에 협업자를 추가합니다.
-  ///
-  /// 소유자 권한이 없으면 일반적으로 403 [TechBlogApiException]이 발생합니다.
-  Future<PostResponse> addCollaborator({
-    required String postId,
-    required String accessToken,
-    required AddCollaboratorRequest request,
-  }) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(
-          baseUrl,
-          AandiApiEndpointPath.postCollaborators(postId),
-        ),
-      ),
-      data: request.toJson(),
-      options: Options(
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      _throwApiError(decoded, statusCode: statusCode);
-    }
-
-    return PostResponse.fromJson(decoded);
-  }
-
-  /// 이미지를 업로드하고 공개 메타데이터를 반환합니다.
-  ///
-  /// 서버 제약 위반 시 413(용량 초과), 415(미디어 타입 불일치) 오류가 발생할 수 있습니다.
-  Future<ImageUploadResponse> uploadImage({required MultipartFile file}) async {
-    final response = await dio.requestUri<dynamic>(
-      Uri.parse(
-        AandiApiUrlResolver.resolve(
-            baseUrl, AandiApiEndpointTemplate.postImages),
-      ),
-      data: FormData.fromMap({'file': file}),
-      options: Options(
-        method: 'POST',
-        headers: {'Accept': 'application/json'},
-        responseType: ResponseType.plain,
-        validateStatus: (_) => true,
-      ),
-    );
-
-    final statusCode = response.statusCode ?? 0;
-    final decoded = _decodeResponseMap(response.data, statusCode: statusCode);
-
-    if (statusCode < 200 || statusCode >= 300) {
-      _throwApiError(decoded, statusCode: statusCode);
-    }
-
-    return ImageUploadResponse.fromJson(decoded);
+  Uri _resolveUri(String path) {
+    return Uri.parse(baseUrl).resolve(path);
   }
 
   /// 응답 본문을 `Map<String, dynamic>`으로 정규화합니다.
@@ -688,20 +812,32 @@ class TechBlogApiClient {
 
   Options _v2Options({
     required String method,
-    required String accessToken,
+    String? accessToken,
     bool jsonBody = false,
   }) {
+    final normalizedAccessToken = accessToken?.trim();
+    final hasAccessToken =
+        normalizedAccessToken != null && normalizedAccessToken.isNotEmpty;
+
     return Options(
       method: method,
       headers: {
         'Accept': 'application/json',
         'deviceOS': deviceOs,
         'timestamp': DateTime.now().toUtc().toIso8601String(),
-        'Authenticate': 'Bearer $accessToken',
+        if (hasAccessToken) 'Authenticate': 'Bearer $normalizedAccessToken',
         if (jsonBody) 'Content-Type': 'application/json',
       },
       responseType: ResponseType.plain,
       validateStatus: (_) => true,
+    );
+  }
+
+  MultipartFile _jsonMultipartPart(Map<String, dynamic> payload) {
+    return MultipartFile.fromString(
+      jsonEncode(payload),
+      filename: 'post.json',
+      contentType: DioMediaType.parse(Headers.jsonContentType),
     );
   }
 
